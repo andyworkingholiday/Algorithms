@@ -1,118 +1,154 @@
 ﻿#include <iostream>
-#include <algorithm>
+#include <vector>
 using namespace std;
 
-struct fish {
+struct shark {
 	int y;
 	int x;
-	int dir;
-	bool life;
+	int life;
+	int cd;
+	int fdir[4][4];
 };
 
-int map[4][4];
-fish fishes[17];
-int dy[] = { -1,-1,0,1,1,1,0,-1 };
-int dx[] = {0,-1,-1,-1,0,1,1,1 };
-int sum;
+struct blood {
+	int no;
+	int time;
+};
 
-void swapping(int idx, int iidx) {
-	fish temp = fishes[idx];
-	fishes[idx].y = fishes[iidx].y;
-	fishes[idx].x = fishes[iidx].x;
-	fishes[iidx].y = temp.y;
-	fishes[iidx].x = temp.x;
-}
+int N, M, K;
+blood map[20][20];
+shark sharks[401];
 
-void fish_move() {
-	for (int i = 1; i <= 16; i++) {
-		if (fishes[i].life) {
-			int cy = fishes[i].y; int cx = fishes[i].x; int cdir = fishes[i].dir;
-			for (int dd = 0; dd < 8; dd++) {
-				int dir = (cdir + dd) % 8;
-				int ny = cy + dy[dir];
-				int nx = cx + dx[dir];
-				if (map[ny][nx] == -1 || ny < 0 || ny>3 || nx < 0 || nx>3) continue;
-				if (map[ny][nx] == 0) {
-					fishes[i].y = ny; fishes[i].x = nx;
-					map[ny][nx] = i;
-					map[cy][cx] = 0;					
+const int dy[] = { -1,1,0,0 };
+const int dx[] = { 0,0,-1,1 };
+
+void move() {
+	for (int idx = 1; idx <= M; idx++) {
+		if (!sharks[idx].life) continue;
+		int cy = sharks[idx].y; int cx = sharks[idx].x; int cdir = sharks[idx].cd;
+		map[cy][cx].time--;
+		if (map[cy][cx].time == 0)
+			map[cy][cx] = { 0,0 };
+		
+		bool isEmpty = false;
+		for (int dir = 0; dir < 4; dir++) {
+			int ny = cy + dy[sharks[idx].fdir[cdir][dir]];
+			int nx = cx + dx[sharks[idx].fdir[cdir][dir]];
+			if (ny<0 || ny>N || nx<0 || nx>N) continue;
+			if (map[ny][nx].no == 0) {
+				map[ny][nx] = { idx, K };
+				sharks[idx].cd = sharks[idx].fdir[cdir][dir];
+				sharks[idx].y = ny; sharks[idx].x = nx;
+				isEmpty = true;
+				break;
+			}
+
+			else if (map[ny][nx].no!=idx && map[ny][nx].no>=1) {
+				if (map[ny][nx].time == K) {
+					sharks[idx].life = false;
+					isEmpty = true;
 					break;
 				}
-				else if (map[ny][nx] != -1) {
-					swapping(i, map[ny][nx]);
-					swap(map[cy][cx], map[ny][nx]);
+			}
+		}
+
+		if (!isEmpty) {
+			for (int dir = 0; dir < 4; dir++) {
+				int ny = cy + dy[sharks[idx].fdir[cdir][dir]];
+				int nx = cx + dx[sharks[idx].fdir[cdir][dir]];
+				if (ny<0 || ny>N || nx<0 || nx>N) continue;
+				if (map[ny][nx].no == idx) {
+					map[ny][nx] = { idx,K };
+					sharks[idx].cd = sharks[idx].fdir[cdir][dir];
+					sharks[idx].y = ny; sharks[idx].x = nx;
+					isEmpty = true;
 					break;
 				}
+			}
+		}
+	}
 
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < N; j++) {
+			if (map[i][j].no >= 1 && map[i][j].time ==K-2) {
+				map[i][j].time--;
+				if (map[i][j].time == 0) map[i][j].no = 0;
 			}
 		}
 	}
 }
 
-void copy(int a[4][4], int b[4][4], fish c[17], fish d[17]) {
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-			a[i][j] = b[i][j];
+int main() {
+	scanf("%d %d %d", &N, &M, &K);
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < N; j++) {
+			int a; 
+			scanf("%d", &a);
+			if (a != 0) {
+				map[i][j] = { a,K };
+				sharks[a].y = i; sharks[a].x = j; sharks[a].life = true;
+			}
+
+			else map[i][j] = { 0,0 };
 		}
 	}
 
-	for (int i = 1; i <= 16; i++) {
-		c[i] = d[i];
+	for (int i = 1; i <= M; i++) {
+		int direction;
+		scanf("%d", &direction);
+		direction--;
+		sharks[i].cd = direction;
 	}
-}
 
-void shark_move(int sy, int sx, int dir, int score) {
-	sum = max(sum, score);
-	int temp[4][4];
-	fish tempp[17];
-	copy(temp, map, tempp, fishes);
-
-	fish_move();
-
-	if (score <= 22) {
-		cout << score << endl;
+	for (int x = 1; x <= M; x++) {
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
-				cout << map[i][j] << " ";
+				int a;
+				scanf("%d", &a);
+				a--;
+				sharks[x].fdir[i][j] = a;
 			}
-			cout << endl;
+		}
+	}
+
+	cout << endl;
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < N; j++) {
+			cout << map[i][j].no << " ";
 		}
 		cout << endl;
 	}
 
-	for (int jump = 1; jump <= 3; jump++) {
-		int ny = sy + dy[dir] * jump;
-		int nx = sx + dx[dir] * jump;
-		if (ny < 0 || ny>3 || nx < 0 || nx>3 || map[ny][nx]==0) continue;
-		int val = map[ny][nx]; 
-		int vdir = fishes[val].dir;
-
-		fishes[val].life = false;
-		map[sy][sx] = 0;
-		map[ny][nx] = -1;
-		shark_move(ny, nx, vdir, score + val);
-		map[ny][nx] = val;
-		map[sy][sx] = -1;
-		fishes[val].life = true;
-	}
-	copy(map, temp, fishes, tempp);
-}
-
-int main() {
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-			int a, b;
-			scanf("%d %d", &a, &b);
-			b--;
-			map[i][j] = a;
-			fishes[a] = { i,j,b,true};
+	cout << endl;
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < N; j++) {
+			cout << map[i][j].time << " ";
 		}
+		cout << endl;
 	}
 
-	int score = map[0][0];
-	int sdir = fishes[score].dir;
-	fishes[score].life = false;
-	map[0][0] = -1;
-	shark_move(0, 0, sdir, score);
-	printf("%d\n", sum);
+	int k = 1;
+	while (k <= 5) {
+
+		cout << endl << "--------" << k << "--------" << endl;
+		move();
+
+		cout << endl;
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < N; j++) {
+				cout << map[i][j].no << " ";
+			}
+			cout << endl;
+		}
+
+		cout << endl;
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < N; j++) {
+				cout << map[i][j].time << " ";
+			}
+			cout << endl;
+		}
+
+		k++;
+	}
 }
