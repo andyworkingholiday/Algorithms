@@ -3,7 +3,6 @@
 #include <algorithm>
 using namespace std;
 
-
 struct tree {
 	int y, x, age;
 };
